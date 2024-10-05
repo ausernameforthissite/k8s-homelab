@@ -8,6 +8,9 @@ N.B.: This guide doesn't cover domain-based conditional routing.
 # Sources
 
 - [shadowsocks-libev setup guide (in Russian)](https://habr.com/ru/articles/748408/)
+- [Russian IP addresses download guide (in Russian)](https://pavel.su/internet/list-of-russian-ip-addresses/)
+- [`ipcalc` introduction](https://stackoverflow.com/questions/41325084/convert-ip-ranges-list-to-cidr)
+- [`ipcalc` repository](https://github.com/kjokjo/ipcalc)
 
 # Prerequisites
 
@@ -75,3 +78,32 @@ wget -qO- http://ipecho.net/plain | xargs echo
 ```
 
 You should see the IP of the Outline server.
+
+# Bypass Russian IPs
+
+```shell
+opkg install jq perl wget
+# install all the perl modules, because I'm too lazy to look for imports in ipcalc
+opkg install $(opkg find '*perlbase*' | grep -E -o '^perlbase[a-z-]+' | tr '\n' ' ')
+wget https://raw.githubusercontent.com/kjokjo/ipcalc/refs/heads/master/ipcalc
+```
+
+```shell
+LOAD_SCRIPT=/root/load-ru-ip.sh
+
+cat <<EOF > $LOAD_SCRIPT
+#!/bin/bash
+curl https://stat.ripe.net/data/country-resource-list/data.json?resource=RU | jq -r '.data.resources.ipv4 | .[]' > ru.txt
+
+CIDR_FILE=/etc/shadowsocks-libev/ru_cidr.txt
+echo '' > $CIDR_FILE
+cat ru.txt | grep "/" >> $CIDR_FILE
+cat ru.txt | grep -v "/" | xargs -n 1 perl ipcalc | grep -v 'deaggregate' >> $CIDR_FILE
+rm ru.txt
+EOF
+
+chmod +x $LOAD_SCRIPT
+
+echo "0 0 * * * $LOAD_SCRIPT" >> /etc/crontabs/root
+echo "        option dst_ips_bypass_file '/etc/shadowsocks-libev/ru_cidr.txt'" >> /etc/config/shadowsocks-libev
+```
