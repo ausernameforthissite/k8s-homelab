@@ -103,6 +103,7 @@ rm ru.txt
 EOF
 
 chmod +x $LOAD_SCRIPT
+$LOAD_SCRIPT
 
 echo "0 0 * * * $LOAD_SCRIPT" >> /etc/crontabs/root
 echo "        option dst_ips_bypass_file '/etc/shadowsocks-libev/ru_cidr.txt'" >> /etc/config/shadowsocks-libev
