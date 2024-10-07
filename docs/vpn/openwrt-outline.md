@@ -82,7 +82,17 @@ wget -qO- http://ipecho.net/plain | xargs echo
 
 You should see the IP of the Outline server.
 
-# Bypass Russian IPs
+# Two ways to deal with the Internet balkanisation
+
+Unfortunately, we live in the reality where it isn't enough to just reroute everything through VPN and enjoy a happy
+life just like nothing is happening because, for example:
+
+- many Russian sites like government services won't be accessible outside of Russia;
+- some sites just block requests from data centres' subnets;
+- we don't want to have legal problems with foreign VPS providers,
+  but want to download and seed de-facto decriminalised torrents from Russia instead.
+
+## Approach 1. Bypass Russian IPs
 
 ```shell
 opkg update
@@ -110,8 +120,30 @@ chmod +x $LOAD_SCRIPT
 $LOAD_SCRIPT
 
 echo "0 0 * * * $LOAD_SCRIPT" >> /etc/crontabs/root
-echo "        option dst_ips_bypass_file '/etc/shadowsocks-libev/ru_cidr.txt'" >> /etc/config/shadowsocks-libev
 
+uci set shadowsocks-libev.ss_rules.dst_ips_bypass_file='/etc/shadowsocks-libev/ru_cidr.txt'
+uci set shadowsocks-libev.ss_rules.dst_default='forward'
+uci commit network
+/etc/init.d/network restart
+```
+
+## Approach 2. Reroute only IPs from the Roskomnadzor list
+
+```shell
+LOAD_SCRIPT=/root/load-rkn-list.sh
+
+cat <<"EOF" > $LOAD_SCRIPT
+#!/bin/bash
+wget https://antifilter.download/list/allyouneed.lst -P /etc/shadowsocks-libev/
+EOF
+
+chmod +x $LOAD_SCRIPT
+$LOAD_SCRIPT
+
+echo "0 0 * * * $LOAD_SCRIPT" >> /etc/crontabs/root
+
+uci set shadowsocks-libev.ss_rules.dst_ips_forward_file='/etc/shadowsocks-libev/allyouneed.lst'
+uci set shadowsocks-libev.ss_rules.dst_default='bypass'
 uci commit network
 /etc/init.d/network restart
 ```
