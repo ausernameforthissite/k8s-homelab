@@ -69,6 +69,9 @@ config ss_rules 'ss_rules'
         option nft_tcp_extra 'tcp dport { 80-$LEFT_PORT, $RIGHT_PORT-65535 }'
         option nft_udp_extra 'udp dport { 53-65535 }'
 EOF
+
+uci commit network
+/etc/init.d/network restart
 ```
 
 # Check if your Outline client works
@@ -82,7 +85,8 @@ You should see the IP of the Outline server.
 # Bypass Russian IPs
 
 ```shell
-opkg install jq perl wget
+opkg update
+opkg install jq perl wget curl
 # install all the perl modules, because I'm too lazy to look for imports in ipcalc
 opkg install $(opkg find '*perlbase*' | grep -E -o '^perlbase[a-z-]+' | tr '\n' ' ')
 wget https://raw.githubusercontent.com/kjokjo/ipcalc/refs/heads/master/ipcalc
@@ -91,7 +95,7 @@ wget https://raw.githubusercontent.com/kjokjo/ipcalc/refs/heads/master/ipcalc
 ```shell
 LOAD_SCRIPT=/root/load-ru-ip.sh
 
-cat <<EOF > $LOAD_SCRIPT
+cat <<"EOF" > $LOAD_SCRIPT
 #!/bin/bash
 curl https://stat.ripe.net/data/country-resource-list/data.json?resource=RU | jq -r '.data.resources.ipv4 | .[]' > ru.txt
 
@@ -107,4 +111,7 @@ $LOAD_SCRIPT
 
 echo "0 0 * * * $LOAD_SCRIPT" >> /etc/crontabs/root
 echo "        option dst_ips_bypass_file '/etc/shadowsocks-libev/ru_cidr.txt'" >> /etc/config/shadowsocks-libev
+
+uci commit network
+/etc/init.d/network restart
 ```
