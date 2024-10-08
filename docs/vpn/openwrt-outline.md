@@ -134,6 +134,7 @@ LOAD_SCRIPT=/root/load-rkn-list.sh
 
 cat <<"EOF" > $LOAD_SCRIPT
 #!/bin/bash
+rm /etc/shadowsocks-libev/allyouneed.lst
 wget https://antifilter.download/list/allyouneed.lst -P /etc/shadowsocks-libev/
 EOF
 
